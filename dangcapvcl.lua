@@ -64,54 +64,6 @@ local function MakeDraggable(gui)
     end)
 end
 
-local LoadGui = Instance.new("ScreenGui")
-LoadGui.Name = "BountyTracker_Loading"
-LoadGui.DisplayOrder = 999
-LoadGui.Parent = SafeGui
-
-local LFrame = Instance.new("Frame", LoadGui)
-LFrame.Size = UDim2.new(0, 280, 0, 90)
-LFrame.Position = UDim2.new(0.5, -140, 0.5, -45)
-LFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-LFrame.BorderSizePixel = 0
-Instance.new("UICorner", LFrame).CornerRadius = UDim.new(0, 10)
-local LStroke = Instance.new("UIStroke", LFrame)
-LStroke.Thickness = 2
-LStroke.Color = Color3.fromRGB(0, 255, 150)
-
-local LTitle = Instance.new("TextLabel", LFrame)
-LTitle.Size = UDim2.new(1, 0, 0, 35)
-LTitle.Position = UDim2.new(0, 0, 0.1, 0)
-LTitle.Text = "LOADING CONFIG VIP..."
-LTitle.TextColor3 = Color3.new(1, 1, 1)
-LTitle.Font = Enum.Font.GothamBold
-LTitle.TextSize = 14
-LTitle.BackgroundTransparency = 1
-
-local PBarBg = Instance.new("Frame", LFrame)
-PBarBg.Size = UDim2.new(0.8, 0, 0, 4)
-PBarBg.Position = UDim2.new(0.1, 0, 0.65, 0)
-PBarBg.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-PBarBg.BorderSizePixel = 0
-Instance.new("UICorner", PBarBg)
-
-local PBar = Instance.new("Frame", PBarBg)
-PBar.Size = UDim2.new(0, 0, 1, 0)
-PBar.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
-PBar.BorderSizePixel = 0
-Instance.new("UICorner", PBar)
-
-task.spawn(function()
-    local stages = {"Checking Data...", "UI Rectangle Mode...", "Finalizing...", "Success!"}
-    for i, msg in ipairs(stages) do
-        LTitle.Text = msg
-        local tween = TweenService:Create(PBar, TweenInfo.new(0.4, Enum.EasingStyle.Quart), {Size = UDim2.new(i/#stages, 0, 1, 0)})
-        tween:Play()
-        task.wait(0.5)
-    end
-    LoadGui:Destroy()
-end)
-
 local leaderstats = LP:WaitForChild("leaderstats", 15)
 local bounty_stat = leaderstats and leaderstats:WaitForChild("Bounty/Honor", 15)
 local last_bounty = bounty_stat and bounty_stat.Value or 0

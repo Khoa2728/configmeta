@@ -1,4 +1,4 @@
-_G.WebhookURL = _G.WebhookURL or "" -- Dán link vào đây hoặc để ở script ngoài
+_G.WebhookURL = _G.WebhookURL or ""
 
 repeat task.wait() until game:IsLoaded()
 

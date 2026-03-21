@@ -1,3 +1,6 @@
+Credit: Config VIP by Khoa
+]]
+
 repeat task.wait() until game:IsLoaded()
 
 local P_Serv = game:GetService("Players")
@@ -6,6 +9,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
+local StatsService = game:GetService("Stats")
 
 local SafeGui = (type(gethui) == "function" and gethui()) or game:GetService("CoreGui") or LP:WaitForChild("PlayerGui")
 
@@ -68,7 +72,7 @@ PBarBg.BackgroundColor3 = Color3.fromRGB(30, 30, 40); Instance.new("UICorner", P
 local PBar = Instance.new("Frame", PBarBg)
 PBar.Size = UDim2.new(0, 0, 1, 0); PBar.BackgroundColor3 = Color3.fromRGB(0, 255, 150); Instance.new("UICorner", PBar)
 
-local stages = {"Loading Stats...", "Optimizing UI...", "Bypassing...", "Ready!"}
+local stages = {"Loading Stats...", "Optimizing UI...", "Config VIP by khoa...", "Ready!"}
 for i, msg in ipairs(stages) do
     LTitle.Text = msg
     TweenService:Create(PBar, TweenInfo.new(0.3), {Size = UDim2.new(i/#stages, 0, 1, 0)}):Play()
@@ -82,7 +86,7 @@ local last_bounty = bounty_stat.Value
 
 local MainGui = Instance.new("ScreenGui", SafeGui)
 local MainFrame = Instance.new("Frame", MainGui)
-MainFrame.Size = UDim2.new(0, 220, 0, 180); MainFrame.Position = UDim2.new(0.5, -110, 0.4, 0)
+MainFrame.Size = UDim2.new(0, 220, 0, 230); MainFrame.Position = UDim2.new(0.5, -110, 0.4, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 12); Instance.new("UICorner", MainFrame)
 local MainStroke = Instance.new("UIStroke", MainFrame); MainStroke.Thickness = 2; MakeDraggable(MainFrame)
 
@@ -105,13 +109,19 @@ local function AddRow(txt, pos, clr)
     return l
 end
 
-local BountyLbl = AddRow("💎 BOUNTY: --", UDim2.new(0, 15, 0, 15), Color3.new(1,1,1))
-local EarnedLbl = AddRow("📈 EARNED: 0", UDim2.new(0, 15, 0, 45), Color3.fromRGB(0, 255, 150))
+local CreditLbl = AddRow("Config VIP by Khoa", UDim2.new(0, 15, 0, 5), Color3.fromRGB(255, 255, 255))
+CreditLbl.TextSize = 10; CreditLbl.TextTransparency = 0.5; CreditLbl.TextXAlignment = Enum.TextXAlignment.Center
+Instance.new("UIStroke", CreditLbl).Thickness = 0.5
+
+local BountyLbl = AddRow("💎 BOUNTY: --", UDim2.new(0, 15, 0, 25), Color3.new(1,1,1))
+local EarnedLbl = AddRow("📈 EARNED: 0", UDim2.new(0, 15, 0, 50), Color3.fromRGB(0, 255, 150))
 local KillsLbl  = AddRow("⚔️ KILLS: 0", UDim2.new(0, 15, 0, 75), Color3.fromRGB(255, 80, 80))
-local TimeLbl   = AddRow("🕒 TIME: 00:00:00", UDim2.new(0, 15, 0, 105), Color3.fromRGB(255, 200, 0))
+local TimeLbl   = AddRow("🕒 TIME: 00:00:00", UDim2.new(0, 15, 0, 100), Color3.fromRGB(255, 200, 0))
+local FPSLbl    = AddRow("🚀 FPS: --", UDim2.new(0, 15, 0, 125), Color3.fromRGB(0, 200, 255))
+local PingLbl   = AddRow("📶 PING: --", UDim2.new(0, 15, 0, 150), Color3.fromRGB(200, 100, 255))
 
 local ResetBtn = Instance.new("TextButton", MainFrame)
-ResetBtn.Size = UDim2.new(0.7, 0, 0, 25); ResetBtn.Position = UDim2.new(0.15, 0, 0.8, 0)
+ResetBtn.Size = UDim2.new(0.7, 0, 0, 25); ResetBtn.Position = UDim2.new(0.15, 0, 0.85, 0)
 ResetBtn.BackgroundColor3 = Color3.fromRGB(30, 10, 10); ResetBtn.Text = "RESET DATA"; ResetBtn.TextColor3 = Color3.new(1, 0.4, 0.4); ResetBtn.Font = Enum.Font.GothamBold; ResetBtn.TextSize = 11
 Instance.new("UICorner", ResetBtn)
 ResetBtn.MouseButton1Click:Connect(function() 
@@ -120,9 +130,16 @@ ResetBtn.MouseButton1Click:Connect(function()
 end)
 
 local StartTime = tick()
+local FPS = 0
 
 task.spawn(function()
-    while task.wait(1) do
+    while task.wait(0.1) do
+        -- Cập nhật FPS
+        local fr = 1 / RunService.RenderStepped:Wait()
+        FPS = math.floor(fr)
+        
+        local ping = math.floor(StatsService.Network.ServerStatsItem["Data Ping"]:GetValue())
+        
         local current_bounty = bounty_stat.Value
         if current_bounty ~= last_bounty then
             local diff = current_bounty - last_bounty
@@ -134,6 +151,10 @@ task.spawn(function()
         BountyLbl.Text = "💎 BOUNTY: " .. FormatNumber(current_bounty)
         EarnedLbl.Text = "📈 EARNED: " .. (Stats.Earned >= 0 and "+" or "") .. FormatNumber(Stats.Earned)
         KillsLbl.Text = "⚔️ KILLS: " .. SessionKills .. " (" .. Stats.Kills .. ")"
+        
+        FPSLbl.Text = "🚀 FPS: " .. FPS
+        PingLbl.Text = "📶 PING: " .. ping .. " ms"
+        
         local d = tick() - StartTime
         TimeLbl.Text = string.format("🕒 TIME: %02d:%02d:%02d", math.floor(d/3600), math.floor((d%3600)/60), math.floor(d%60))
     end

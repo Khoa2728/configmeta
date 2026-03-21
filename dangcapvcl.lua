@@ -1,7 +1,3 @@
-[[
-    Credit: Config VIP by khoa
-]]
-
 repeat task.wait() until game:IsLoaded()
 
 local P_Serv = game:GetService("Players")
@@ -115,7 +111,7 @@ local function AddRow(txt, pos, clr)
     return l
 end
 
-local CreditLbl = AddRow("Config VIP by Khoa", UDim2.new(0, 15, 0, 5), Color3.fromRGB(255, 255, 255))
+local CreditLbl = AddRow("Config VIP by khoa", UDim2.new(0, 15, 0, 5), Color3.fromRGB(255, 255, 255))
 CreditLbl.TextSize = 10; CreditLbl.TextTransparency = 0.5; CreditLbl.TextXAlignment = Enum.TextXAlignment.Center
 Instance.new("UIStroke", CreditLbl).Thickness = 0.5
 
@@ -137,6 +133,7 @@ end)
 
 local StartTime = tick()
 local FPS = 0
+local LastKillUpdate = 0
 
 task.spawn(function()
     while task.wait(0.1) do
@@ -149,9 +146,10 @@ task.spawn(function()
             local diff = current_bounty - last_bounty
             Stats.Earned = Stats.Earned + diff
             
-            if diff > 100 then 
-                task.delay(0.1, function()
-                end)
+            if diff > 500 and (tick() - LastKillUpdate) > 1 then 
+                SessionKills = SessionKills + 1
+                Stats.Kills = Stats.Kills + 1
+                LastKillUpdate = tick()
             end
 
             last_bounty = current_bounty
@@ -187,6 +185,7 @@ task.spawn(function()
                     hum.Died:Connect(function() 
                         SessionKills = SessionKills + 1
                         Stats.Kills = Stats.Kills + 1
+                        LastKillUpdate = tick()
                         Save() 
                     end)
                 end)
@@ -196,15 +195,16 @@ task.spawn(function()
         for _, p in pairs(P_Serv:GetPlayers()) do
             if p ~= LP and p.Character and p.Character:FindFirstChild("Humanoid") then
                 local hum = p.Character.Humanoid
-                if hum.Health > 0 and hum.Health < 25 and not hum:FindFirstChild("VipTag") then
+                if hum.Health > 0 and hum.Health < 30 and not hum:FindFirstChild("VipTag") then
                     if LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("HumanoidRootPart") then
                         local dist = (LP.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude
-                        if dist < 60 then
+                        if dist < 65 then
                             pcall(function()
                                 local tag = Instance.new("BoolValue", hum); tag.Name = "VipTag"
                                 hum.Died:Connect(function()
                                     SessionKills = SessionKills + 1
                                     Stats.Kills = Stats.Kills + 1
+                                    LastKillUpdate = tick()
                                     Save()
                                 end)
                             end)

@@ -1,4 +1,8 @@
-repeat task.wait() until game:IsLoaded()
+if not game:IsLoaded() then
+    pcall(function()
+        game.Loaded:Wait()
+    end)
+end
 
 local P_Serv = game:GetService("Players")
 local LP = P_Serv.LocalPlayer
@@ -12,12 +16,14 @@ local SafeGui = (type(gethui) == "function" and gethui()) or game:GetService("Co
 
 local SaveFile = "Config_Vip_Stats.txt"
 local Stats = {Kills = 0, Earned = 0}
-local SessionKills = 0
 
 pcall(function() 
     if isfile and isfile(SaveFile) then 
         local data = HttpService:JSONDecode(readfile(SaveFile))
-        if data then Stats = data end
+        if data then 
+            Stats.Kills = data.Kills or 0
+            Stats.Earned = data.Earned or 0
+        end
     end 
 end)
 
@@ -75,16 +81,18 @@ local PBar = Instance.new("Frame", PBarBg)
 PBar.Size = UDim2.new(0, 0, 1, 0); PBar.BackgroundColor3 = Color3.fromRGB(0, 255, 150); Instance.new("UICorner", PBar)
 
 local stages = {"Loading Stats...", "Optimizing UI...", "Config VIP by khoa...", "Ready!"}
-for i, msg in ipairs(stages) do
-    LTitle.Text = msg
-    TweenService:Create(PBar, TweenInfo.new(0.3), {Size = UDim2.new(i/#stages, 0, 1, 0)}):Play()
-    task.wait(0.3)
-end
-LoadGui:Destroy()
+task.spawn(function()
+    for i, msg in ipairs(stages) do
+        LTitle.Text = msg
+        TweenService:Create(PBar, TweenInfo.new(0.2), {Size = UDim2.new(i/#stages, 0, 1, 0)}):Play()
+        task.wait(0.2)
+    end
+    LoadGui:Destroy()
+end)
 
-local bounty_stat = LP:WaitForChild("leaderstats"):WaitForChild("Bounty/Honor")
-while bounty_stat.Value <= 0 do task.wait(0.5) end
-local last_bounty = bounty_stat.Value
+local leaderstats = LP:WaitForChild("leaderstats", 10)
+local bounty_stat = leaderstats and leaderstats:WaitForChild("Bounty/Honor", 10)
+local last_bounty = bounty_stat and bounty_stat.Value or 0
 
 local MainGui = Instance.new("ScreenGui", SafeGui)
 local MainFrame = Instance.new("Frame", MainGui)
@@ -127,7 +135,7 @@ ResetBtn.Size = UDim2.new(0.7, 0, 0, 25); ResetBtn.Position = UDim2.new(0.15, 0,
 ResetBtn.BackgroundColor3 = Color3.fromRGB(30, 10, 10); ResetBtn.Text = "RESET DATA"; ResetBtn.TextColor3 = Color3.new(1, 0.4, 0.4); ResetBtn.Font = Enum.Font.GothamBold; ResetBtn.TextSize = 11
 Instance.new("UICorner", ResetBtn)
 ResetBtn.MouseButton1Click:Connect(function() 
-    Stats.Kills = 0; Stats.Earned = 0; SessionKills = 0; Save() 
+    Stats.Kills = 0; Stats.Earned = 0; Save() 
     EarnedLbl.Text = "📈 EARNED: 0"; KillsLbl.Text = "⚔️ KILLS: 0"
 end)
 
@@ -135,36 +143,41 @@ local StartTime = tick()
 local FPS = 0
 local LastKillUpdate = 0
 
+local function OnKillDetected()
+    if (tick() - LastKillUpdate) > 0.8 then
+        Stats.Kills = Stats.Kills + 1
+        LastKillUpdate = tick()
+        Save()
+    end
+end
+
 task.spawn(function()
     while task.wait(0.1) do
         local fr = 1 / RunService.RenderStepped:Wait()
         FPS = math.floor(fr)
         local ping = math.floor(StatsService.Network.ServerStatsItem["Data Ping"]:GetValue())
         
-        local current_bounty = bounty_stat.Value
+        local current_bounty = bounty_stat and bounty_stat.Value or 0
+        
+        if last_bounty == 0 and current_bounty > 0 then
+            last_bounty = current_bounty
+        end
+
         if current_bounty ~= last_bounty then
             local diff = current_bounty - last_bounty
-            Stats.Earned = Stats.Earned + diff
-            
-            if diff > 500 and (tick() - LastKillUpdate) > 1 then 
-                SessionKills = SessionKills + 1
-                Stats.Kills = Stats.Kills + 1
-                LastKillUpdate = tick()
+            if diff > 0 then
+                Stats.Earned = Stats.Earned + diff
+                OnKillDetected()
+            elseif diff < 0 then
+                Stats.Earned = Stats.Earned + diff
             end
-
             last_bounty = current_bounty
             Save()
         end
         
         BountyLbl.Text = "💎 BOUNTY: " .. FormatNumber(current_bounty)
-        
-        if Stats.Earned == 0 then
-            EarnedLbl.Text = "📈 EARNED: 0"
-        else
-            EarnedLbl.Text = "📈 EARNED: " .. (Stats.Earned > 0 and "+" or "") .. FormatNumber(Stats.Earned)
-        end
-
-        KillsLbl.Text = "⚔️ KILLS: " .. SessionKills .. " (" .. Stats.Kills .. ")"
+        EarnedLbl.Text = "📈 EARNED: " .. (Stats.Earned >= 0 and "+" or "") .. FormatNumber(Stats.Earned)
+        KillsLbl.Text = "⚔️ KILLS: " .. Stats.Kills
         FPSLbl.Text = "🚀 FPS: " .. FPS
         PingLbl.Text = "📶 PING: " .. ping .. " ms"
         
@@ -174,42 +187,23 @@ task.spawn(function()
 end)
 
 task.spawn(function()
-    while task.wait(0.3) do
-        local target = getgenv().LockedTarget or getgenv().CurrentTarget or getgenv().enemy
-        
-        if target and target:FindFirstChild("Humanoid") then
-            local hum = target.Humanoid
-            if hum.Health > 0 and not hum:FindFirstChild("VipTag") then
-                pcall(function()
-                    local tag = Instance.new("BoolValue", hum); tag.Name = "VipTag"
-                    hum.Died:Connect(function() 
-                        SessionKills = SessionKills + 1
-                        Stats.Kills = Stats.Kills + 1
-                        LastKillUpdate = tick()
-                        Save() 
-                    end)
-                end)
-            end
-        end
-        
+    while task.wait(0.5) do
         for _, p in pairs(P_Serv:GetPlayers()) do
             if p ~= LP and p.Character and p.Character:FindFirstChild("Humanoid") then
                 local hum = p.Character.Humanoid
-                if hum.Health > 0 and hum.Health < 30 and not hum:FindFirstChild("VipTag") then
-                    if LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("HumanoidRootPart") then
-                        local dist = (LP.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude
-                        if dist < 65 then
-                            pcall(function()
-                                local tag = Instance.new("BoolValue", hum); tag.Name = "VipTag"
-                                hum.Died:Connect(function()
-                                    SessionKills = SessionKills + 1
-                                    Stats.Kills = Stats.Kills + 1
-                                    LastKillUpdate = tick()
-                                    Save()
-                                end)
-                            end)
-                        end
-                    end
+                if hum.Health > 0 and not hum:FindFirstChild("VipTag") then
+                    pcall(function()
+                        local tag = Instance.new("BoolValue", hum)
+                        tag.Name = "VipTag"
+                        hum.Died:Connect(function()
+                            if LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("HumanoidRootPart") then
+                                local dist = (LP.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude
+                                if dist < 100 then
+                                    OnKillDetected()
+                                end
+                            end
+                        end)
+                    end)
                 end
             end
         end

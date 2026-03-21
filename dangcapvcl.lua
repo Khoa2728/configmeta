@@ -1,6 +1,3 @@
-Credit: Config VIP by Khoa
-]]
-
 repeat task.wait() until game:IsLoaded()
 
 local P_Serv = game:GetService("Players")

@@ -1,3 +1,7 @@
+[[
+    Credit: Config VIP by khoa
+]]
+
 repeat task.wait() until game:IsLoaded()
 
 local P_Serv = game:GetService("Players")
@@ -31,9 +35,14 @@ end
 
 local function FormatNumber(n)
     local absN = math.abs(n)
-    if absN >= 1000000 then return string.format("%.1fM", n / 1000000)
-    elseif absN >= 1000 then return string.format("%.1fK", n / 1000)
-    end return tostring(math.floor(n))
+    if absN >= 1000000 then 
+        local val = n / 1000000
+        return string.format(val % 1 == 0 and "%dM" or "%.1fM", val)
+    elseif absN >= 1000 then 
+        local val = n / 1000
+        return string.format(val % 1 == 0 and "%dK" or "%.1fK", val)
+    end 
+    return tostring(math.floor(n))
 end
 
 local function MakeDraggable(gui)
@@ -131,24 +140,33 @@ local FPS = 0
 
 task.spawn(function()
     while task.wait(0.1) do
-        -- Cập nhật FPS
         local fr = 1 / RunService.RenderStepped:Wait()
         FPS = math.floor(fr)
-        
         local ping = math.floor(StatsService.Network.ServerStatsItem["Data Ping"]:GetValue())
         
         local current_bounty = bounty_stat.Value
         if current_bounty ~= last_bounty then
             local diff = current_bounty - last_bounty
             Stats.Earned = Stats.Earned + diff
+            
+            if diff > 100 then 
+                task.delay(0.1, function()
+                end)
+            end
+
             last_bounty = current_bounty
             Save()
         end
         
         BountyLbl.Text = "💎 BOUNTY: " .. FormatNumber(current_bounty)
-        EarnedLbl.Text = "📈 EARNED: " .. (Stats.Earned >= 0 and "+" or "") .. FormatNumber(Stats.Earned)
-        KillsLbl.Text = "⚔️ KILLS: " .. SessionKills .. " (" .. Stats.Kills .. ")"
         
+        if Stats.Earned == 0 then
+            EarnedLbl.Text = "📈 EARNED: 0"
+        else
+            EarnedLbl.Text = "📈 EARNED: " .. (Stats.Earned > 0 and "+" or "") .. FormatNumber(Stats.Earned)
+        end
+
+        KillsLbl.Text = "⚔️ KILLS: " .. SessionKills .. " (" .. Stats.Kills .. ")"
         FPSLbl.Text = "🚀 FPS: " .. FPS
         PingLbl.Text = "📶 PING: " .. ping .. " ms"
         
@@ -158,17 +176,42 @@ task.spawn(function()
 end)
 
 task.spawn(function()
-    while task.wait(0.5) do
-        local t = getgenv().LockedTarget
-        if t and t:FindFirstChild("Humanoid") and t.Humanoid.Health > 0 and not t.Humanoid:FindFirstChild("VipTag") then
-            pcall(function()
-                local tag = Instance.new("BoolValue", t.Humanoid); tag.Name = "VipTag"
-                t.Humanoid.Died:Connect(function() 
-                    SessionKills = SessionKills + 1
-                    Stats.Kills = Stats.Kills + 1
-                    Save() 
+    while task.wait(0.3) do
+        local target = getgenv().LockedTarget or getgenv().CurrentTarget or getgenv().enemy
+        
+        if target and target:FindFirstChild("Humanoid") then
+            local hum = target.Humanoid
+            if hum.Health > 0 and not hum:FindFirstChild("VipTag") then
+                pcall(function()
+                    local tag = Instance.new("BoolValue", hum); tag.Name = "VipTag"
+                    hum.Died:Connect(function() 
+                        SessionKills = SessionKills + 1
+                        Stats.Kills = Stats.Kills + 1
+                        Save() 
+                    end)
                 end)
-            end)
+            end
+        end
+        
+        for _, p in pairs(P_Serv:GetPlayers()) do
+            if p ~= LP and p.Character and p.Character:FindFirstChild("Humanoid") then
+                local hum = p.Character.Humanoid
+                if hum.Health > 0 and hum.Health < 25 and not hum:FindFirstChild("VipTag") then
+                    if LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("HumanoidRootPart") then
+                        local dist = (LP.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude
+                        if dist < 60 then
+                            pcall(function()
+                                local tag = Instance.new("BoolValue", hum); tag.Name = "VipTag"
+                                hum.Died:Connect(function()
+                                    SessionKills = SessionKills + 1
+                                    Stats.Kills = Stats.Kills + 1
+                                    Save()
+                                end)
+                            end)
+                        end
+                    end
+                end
+            end
         end
     end
 end)

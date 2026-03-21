@@ -1,4 +1,4 @@
-_G.WebhookURL = _G.WebhookURL or "" 
+_G.WebhookURL = _G.WebhookURL or "" -- Dán link vào đây hoặc để ở script ngoài
 
 repeat task.wait() until game:IsLoaded()
 
@@ -42,7 +42,7 @@ LFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15); Instance.new("UICorner", L
 local LStroke = Instance.new("UIStroke", LFrame); LStroke.Thickness = 2
 
 local LTitle = Instance.new("TextLabel", LFrame)
-LTitle.Size = UDim2.new(1, 0, 0, 40); LTitle.Text = "CONFIG VIP + WEBHOOK"; LTitle.TextColor3 = Color3.new(1,1,1)
+LTitle.Size = UDim2.new(1, 0, 0, 40); LTitle.Text = "INJECTING BOUNTY VIP..."; LTitle.TextColor3 = Color3.new(1,1,1)
 LTitle.Font = Enum.Font.GothamBold; LTitle.TextSize = 16; LTitle.BackgroundTransparency = 1
 
 local PBarBg = Instance.new("Frame", LFrame)
@@ -51,11 +51,11 @@ PBarBg.BackgroundColor3 = Color3.fromRGB(30, 30, 40); Instance.new("UICorner", P
 local PBar = Instance.new("Frame", PBarBg)
 PBar.Size = UDim2.new(0, 0, 1, 0); PBar.BackgroundColor3 = Color3.fromRGB(0, 255, 150); Instance.new("UICorner", PBar)
 
-local stages = {"Loading Assets...", "Injecting Webhook...", "Bypassing Anti-Cheat...", "Ready!"}
+local stages = {"Loading Stats...", "Checking Webhook...", "Bypassing...", "Ready!"}
 for i, msg in ipairs(stages) do
     LTitle.Text = msg
     TweenService:Create(PBar, TweenInfo.new(0.4), {Size = UDim2.new(i/#stages, 0, 1, 0)}):Play()
-    task.wait(0.5)
+    task.wait(0.4)
 end
 LoadGui:Destroy()
 
@@ -64,21 +64,26 @@ local Stats = {Kills = 0, Earned = 0}
 pcall(function() if isfile(SaveFile) then Stats = HttpService:JSONDecode(readfile(SaveFile)) end end)
 local function Save() pcall(function() writefile(SaveFile, HttpService:JSONEncode(Stats)) end) end
 
-local function SendWebhook(status_title, display_gained, color, current_bounty)
+local bounty_stat = LP:WaitForChild("leaderstats"):WaitForChild("Bounty/Honor")
+while bounty_stat.Value <= 0 do task.wait(0.5) end
+local last_bounty = bounty_stat.Value
+
+local function send_notif(title, display_gained, color)
     if not _G.WebhookURL or _G.WebhookURL == "" then return end
+    local current_bounty = bounty_stat.Value
     local data = {
         ["embeds"] = {{
-            ["title"] = "📈 " .. status_title,
+            ["title"] = "📈 " .. title,
             ["description"] = "Real-time report for: **@" .. LP.Name .. "**",
             ["color"] = color,
             ["fields"] = {
                 {["name"] = "🏷️ Username", ["value"] = "```" .. LP.DisplayName .. "```", ["inline"] = true},
-                {["name"] = "💰 Bounty (Current)", ["value"] = "```" .. FormatNumber(current_bounty) .. "```", ["inline"] = true},
-                {["name"] = "⚔️ Gained", ["value"] = "```" .. display_gained .. "```", ["inline"] = true},
-                {["name"] = "✅ Session Kills", ["value"] = "```" .. Stats.Kills .. "```", ["inline"] = true}
+                {["name"] = "💰 Bounty (Current)", ["value"] = "```" .. tostring(current_bounty) .. "```", ["inline"] = true},
+                {["name"] = "⚔️ Bounty Gained", ["value"] = "```" .. display_gained .. "```", ["inline"] = true},
+                {["name"] = "✅ Status", ["value"] = "🟢 Online | Session Kills: " .. Stats.Kills, ["inline"] = false}
             },
             ["image"] = {["url"] = "https://photo.znews.vn/Uploaded/mdf_drkydd/2016_12_18/12.gif"},
-            ["footer"] = {["text"] = "Bouty VIP Tracker • " .. os.date("%X")},
+            ["footer"] = {["text"] = "Bounty VIP Tracker • " .. os.date("%X")},
             ["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%SZ")
         }}
     }
@@ -90,12 +95,13 @@ local function SendWebhook(status_title, display_gained, color, current_bounty)
     end)
 end
 
+send_notif("INITIALIZED ⚔️", "+0", 16777215)
+
 local MainGui = Instance.new("ScreenGui", SafeGui)
 local MainFrame = Instance.new("Frame", MainGui)
-MainFrame.Size = UDim2.new(0, 230, 0, 185); MainFrame.Position = UDim2.new(0.5, -115, 0.4, 0)
+MainFrame.Size = UDim2.new(0, 220, 0, 180); MainFrame.Position = UDim2.new(0.5, -110, 0.4, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 12); Instance.new("UICorner", MainFrame)
-local MainStroke = Instance.new("UIStroke", MainFrame); MainStroke.Thickness = 2
-MakeDraggable(MainFrame)
+local MainStroke = Instance.new("UIStroke", MainFrame); MainStroke.Thickness = 2; MakeDraggable(MainFrame)
 
 local ToggleBtn = Instance.new("TextButton", MainGui)
 ToggleBtn.Size = UDim2.new(0, 45, 0, 45); ToggleBtn.Position = UDim2.new(0.05, 0, 0.8, 0)
@@ -123,33 +129,27 @@ local TimeLbl   = AddRow("🕒 TIME: 00:00:00", UDim2.new(0, 15, 0, 105), Color3
 
 local ResetBtn = Instance.new("TextButton", MainFrame)
 ResetBtn.Size = UDim2.new(0.7, 0, 0, 25); ResetBtn.Position = UDim2.new(0.15, 0, 0.8, 0)
-ResetBtn.BackgroundColor3 = Color3.fromRGB(30, 10, 10); ResetBtn.Text = "RESET SESSION"; ResetBtn.TextColor3 = Color3.new(1, 0.4, 0.4); ResetBtn.Font = Enum.Font.GothamBold; ResetBtn.TextSize = 11
+ResetBtn.BackgroundColor3 = Color3.fromRGB(30, 10, 10); ResetBtn.Text = "RESET DATA"; ResetBtn.TextColor3 = Color3.new(1, 0.4, 0.4); ResetBtn.Font = Enum.Font.GothamBold; ResetBtn.TextSize = 11
 Instance.new("UICorner", ResetBtn)
 ResetBtn.MouseButton1Click:Connect(function() Stats.Kills = 0; Stats.Earned = 0; Save() end)
 
 local StartTime = tick()
-local LastBounty = 0
 
 task.spawn(function()
-    while task.wait(0.5) do
-        local ls = LP:FindFirstChild("leaderstats")
-        local b = ls and (ls:FindFirstChild("Bounty/Honor") or ls:FindFirstChild("Bounty"))
-        local cur = b and b.Value or 0
-        
-        if LastBounty == 0 then 
-            LastBounty = cur
-            SendWebhook("INITIALIZED ⚔️", "+0", 16777215, cur)
-        end
-        
-        if cur ~= LastBounty and cur > 0 then
-            local diff = cur - LastBounty
-            Stats.Earned = Stats.Earned + diff
+    while task.wait(1) do
+        local current_bounty = bounty_stat.Value
+        if current_bounty ~= last_bounty then
+            local diff = current_bounty - last_bounty
             local prefix = (diff > 0) and "+" or ""
-            SendWebhook("BOUNTY UPDATE ✅", prefix .. FormatNumber(diff), (diff > 0 and 65280 or 16711680), cur)
-            LastBounty = cur; Save()
+            
+            send_notif("BOUNTY UPDATE ✅", prefix .. tostring(diff), (diff > 0 and 65280 or 16711680))
+            
+            Stats.Earned = Stats.Earned + diff
+            last_bounty = current_bounty
+            Save()
         end
         
-        BountyLbl.Text = "💎 BOUNTY: " .. FormatNumber(cur)
+        BountyLbl.Text = "💎 BOUNTY: " .. FormatNumber(current_bounty)
         EarnedLbl.Text = "📈 EARNED: " .. (Stats.Earned >= 0 and "+" or "") .. FormatNumber(Stats.Earned)
         KillsLbl.Text = "⚔️ KILLS: " .. Stats.Kills
         local d = tick() - StartTime
@@ -162,14 +162,10 @@ task.spawn(function()
         local t = getgenv().LockedTarget
         if t and t:FindFirstChild("Humanoid") and t.Humanoid.Health > 0 and not t.Humanoid:FindFirstChild("Tag") then
             local tag = Instance.new("BoolValue", t.Humanoid); tag.Name = "Tag"
-            t.Humanoid.Died:Connect(function() Stats.Kills = Stats.Kills + 1; Save() end)
+            t.Humanoid.Died:Connect(function() 
+                Stats.Kills = Stats.Kills + 1
+                Save() 
+            end)
         end
     end
 end)
-
--- Anti-Sus Global
-getgenv().AntiSus = function(target)
-    if target and target:FindFirstChild("Humanoid") and target.Humanoid.Health <= (target.Humanoid.MaxHealth * 0.12) then
-        if LP.Character then LP.Character.Humanoid:UnequipTools() end
-    end
-end

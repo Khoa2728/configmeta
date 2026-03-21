@@ -12,7 +12,7 @@ local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 local StatsService = game:GetService("Stats")
 
-local SafeGui = (type(gethui) == "function" and gethui()) or game:GetService("CoreGui") or LP:WaitForChild("PlayerGui")
+local SafeGui = (type(gethui) == "function" and gethui()) or game:GetService("CoreGui") or (LP:FindFirstChild("PlayerGui") or LP:WaitForChild("PlayerGui", 10))
 
 local SaveFile = "Config_Vip_Stats.txt"
 local Stats = {Kills = 0, Earned = 0}
@@ -64,79 +64,133 @@ local function MakeDraggable(gui)
     end)
 end
 
-local LoadGui = Instance.new("ScreenGui", SafeGui)
+local LoadGui = Instance.new("ScreenGui")
+LoadGui.Name = "BountyTracker_Loading"
+LoadGui.DisplayOrder = 999
+LoadGui.Parent = SafeGui
+
 local LFrame = Instance.new("Frame", LoadGui)
-LFrame.Size = UDim2.new(0, 300, 0, 120); LFrame.Position = UDim2.new(0.5, -150, 0.5, -60)
-LFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15); Instance.new("UICorner", LFrame)
-local LStroke = Instance.new("UIStroke", LFrame); LStroke.Thickness = 2; LStroke.Color = Color3.fromRGB(0, 255, 150)
+LFrame.Size = UDim2.new(0, 280, 0, 90)
+LFrame.Position = UDim2.new(0.5, -140, 0.5, -45)
+LFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+LFrame.BorderSizePixel = 0
+Instance.new("UICorner", LFrame).CornerRadius = UDim.new(0, 10)
+local LStroke = Instance.new("UIStroke", LFrame)
+LStroke.Thickness = 2
+LStroke.Color = Color3.fromRGB(0, 255, 150)
 
 local LTitle = Instance.new("TextLabel", LFrame)
-LTitle.Size = UDim2.new(1, 0, 0, 40); LTitle.Text = "INJECTING BOUNTY VIP..."; LTitle.TextColor3 = Color3.new(1,1,1)
-LTitle.Font = Enum.Font.GothamBold; LTitle.TextSize = 16; LTitle.BackgroundTransparency = 1
+LTitle.Size = UDim2.new(1, 0, 0, 35)
+LTitle.Position = UDim2.new(0, 0, 0.1, 0)
+LTitle.Text = "LOADING CONFIG VIP..."
+LTitle.TextColor3 = Color3.new(1, 1, 1)
+LTitle.Font = Enum.Font.GothamBold
+LTitle.TextSize = 14
+LTitle.BackgroundTransparency = 1
 
 local PBarBg = Instance.new("Frame", LFrame)
-PBarBg.Size = UDim2.new(0.8, 0, 0, 6); PBarBg.Position = UDim2.new(0.1, 0, 0.7, 0)
-PBarBg.BackgroundColor3 = Color3.fromRGB(30, 30, 40); Instance.new("UICorner", PBarBg)
-local PBar = Instance.new("Frame", PBarBg)
-PBar.Size = UDim2.new(0, 0, 1, 0); PBar.BackgroundColor3 = Color3.fromRGB(0, 255, 150); Instance.new("UICorner", PBar)
+PBarBg.Size = UDim2.new(0.8, 0, 0, 4)
+PBarBg.Position = UDim2.new(0.1, 0, 0.65, 0)
+PBarBg.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+PBarBg.BorderSizePixel = 0
+Instance.new("UICorner", PBarBg)
 
-local stages = {"Loading Stats...", "Optimizing UI...", "Config VIP by khoa...", "Ready!"}
+local PBar = Instance.new("Frame", PBarBg)
+PBar.Size = UDim2.new(0, 0, 1, 0)
+PBar.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
+PBar.BorderSizePixel = 0
+Instance.new("UICorner", PBar)
+
 task.spawn(function()
+    local stages = {"Checking Data...", "UI Rectangle Mode...", "Finalizing...", "Success!"}
     for i, msg in ipairs(stages) do
         LTitle.Text = msg
-        TweenService:Create(PBar, TweenInfo.new(0.2), {Size = UDim2.new(i/#stages, 0, 1, 0)}):Play()
-        task.wait(0.2)
+        local tween = TweenService:Create(PBar, TweenInfo.new(0.4, Enum.EasingStyle.Quart), {Size = UDim2.new(i/#stages, 0, 1, 0)})
+        tween:Play()
+        task.wait(0.5)
     end
     LoadGui:Destroy()
 end)
 
-local leaderstats = LP:WaitForChild("leaderstats", 10)
-local bounty_stat = leaderstats and leaderstats:WaitForChild("Bounty/Honor", 10)
+local leaderstats = LP:WaitForChild("leaderstats", 15)
+local bounty_stat = leaderstats and leaderstats:WaitForChild("Bounty/Honor", 15)
 local last_bounty = bounty_stat and bounty_stat.Value or 0
 
-local MainGui = Instance.new("ScreenGui", SafeGui)
+local MainGui = Instance.new("ScreenGui")
+MainGui.Name = "BountyTracker_Main"
+MainGui.ResetOnSpawn = false
+MainGui.DisplayOrder = 998
+MainGui.Parent = SafeGui
+
 local MainFrame = Instance.new("Frame", MainGui)
-MainFrame.Size = UDim2.new(0, 220, 0, 230); MainFrame.Position = UDim2.new(0.5, -110, 0.4, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 12); Instance.new("UICorner", MainFrame)
-local MainStroke = Instance.new("UIStroke", MainFrame); MainStroke.Thickness = 2; MakeDraggable(MainFrame)
+MainFrame.Size = UDim2.new(0, 320, 0, 130)
+MainFrame.Position = UDim2.new(0.5, -160, 0.1, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+MainFrame.BorderSizePixel = 0
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+local MainStroke = Instance.new("UIStroke", MainFrame)
+MainStroke.Thickness = 2
+MakeDraggable(MainFrame)
 
 local ToggleBtn = Instance.new("TextButton", MainGui)
-ToggleBtn.Size = UDim2.new(0, 45, 0, 45); ToggleBtn.Position = UDim2.new(0.05, 0, 0.8, 0)
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 12); ToggleBtn.Text = "VIP"; ToggleBtn.Font = Enum.Font.GothamBold; ToggleBtn.TextSize = 12; ToggleBtn.TextColor3 = Color3.new(1, 1, 1)
+ToggleBtn.Size = UDim2.new(0, 40, 0, 40)
+ToggleBtn.Position = UDim2.new(0.02, 0, 0.5, 0)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+ToggleBtn.Text = "VIP"
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.TextSize = 12
+ToggleBtn.TextColor3 = Color3.new(1, 1, 1)
+ToggleBtn.BorderSizePixel = 0
 Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
-local TStroke = Instance.new("UIStroke", ToggleBtn); TStroke.Thickness = 2; MakeDraggable(ToggleBtn)
+local TStroke = Instance.new("UIStroke", ToggleBtn)
+TStroke.Thickness = 2
+MakeDraggable(ToggleBtn)
 ToggleBtn.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
 
 RunService.RenderStepped:Connect(function()
     local color = Color3.fromHSV(tick() % 5 / 5, 0.8, 1)
-    MainStroke.Color = color; TStroke.Color = color
+    MainStroke.Color = color
+    TStroke.Color = color
 end)
 
-local function AddRow(txt, pos, clr)
+local function AddLabel(txt, pos, size, clr)
     local l = Instance.new("TextLabel", MainFrame)
-    l.Size = UDim2.new(1, -20, 0, 25); l.Position = pos; l.BackgroundTransparency = 1
-    l.Font = Enum.Font.GothamBold; l.TextSize = 13; l.TextColor3 = clr; l.TextXAlignment = Enum.TextXAlignment.Left; l.Text = txt
+    l.Size = size
+    l.Position = pos
+    l.BackgroundTransparency = 1
+    l.Font = Enum.Font.GothamBold
+    l.TextSize = 12
+    l.TextColor3 = clr
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.Text = txt
     return l
 end
 
-local CreditLbl = AddRow("Config VIP by khoa", UDim2.new(0, 15, 0, 5), Color3.fromRGB(255, 255, 255))
-CreditLbl.TextSize = 10; CreditLbl.TextTransparency = 0.5; CreditLbl.TextXAlignment = Enum.TextXAlignment.Center
-Instance.new("UIStroke", CreditLbl).Thickness = 0.5
+local BountyLbl = AddLabel("💎 BOUNTY: --", UDim2.new(0, 15, 0, 15), UDim2.new(0.5, -15, 0, 20), Color3.new(1,1,1))
+local EarnedLbl = AddLabel("📈 EARNED: 0", UDim2.new(0, 15, 0, 40), UDim2.new(0.5, -15, 0, 20), Color3.fromRGB(0, 255, 150))
+local KillsLbl  = AddLabel("⚔️ KILLS: 0", UDim2.new(0, 15, 0, 65), UDim2.new(0.5, -15, 0, 20), Color3.fromRGB(255, 80, 80))
 
-local BountyLbl = AddRow("💎 BOUNTY: --", UDim2.new(0, 15, 0, 25), Color3.new(1,1,1))
-local EarnedLbl = AddRow("📈 EARNED: 0", UDim2.new(0, 15, 0, 50), Color3.fromRGB(0, 255, 150))
-local KillsLbl  = AddRow("⚔️ KILLS: 0", UDim2.new(0, 15, 0, 75), Color3.fromRGB(255, 80, 80))
-local TimeLbl   = AddRow("🕒 TIME: 00:00:00", UDim2.new(0, 15, 0, 100), Color3.fromRGB(255, 200, 0))
-local FPSLbl    = AddRow("🚀 FPS: --", UDim2.new(0, 15, 0, 125), Color3.fromRGB(0, 200, 255))
-local PingLbl   = AddRow("📶 PING: --", UDim2.new(0, 15, 0, 150), Color3.fromRGB(200, 100, 255))
+local TimeLbl   = AddLabel("🕒 TIME: 00:00:00", UDim2.new(0.5, 5, 0, 15), UDim2.new(0.5, -15, 0, 20), Color3.fromRGB(255, 200, 0))
+local FPSLbl    = AddLabel("🚀 FPS: --", UDim2.new(0.5, 5, 0, 40), UDim2.new(0.5, -15, 0, 20), Color3.fromRGB(0, 200, 255))
+local PingLbl   = AddLabel("📶 PING: --", UDim2.new(0.5, 5, 0, 65), UDim2.new(0.5, -15, 0, 20), Color3.fromRGB(200, 100, 255))
 
 local ResetBtn = Instance.new("TextButton", MainFrame)
-ResetBtn.Size = UDim2.new(0.7, 0, 0, 25); ResetBtn.Position = UDim2.new(0.15, 0, 0.85, 0)
-ResetBtn.BackgroundColor3 = Color3.fromRGB(30, 10, 10); ResetBtn.Text = "RESET DATA"; ResetBtn.TextColor3 = Color3.new(1, 0.4, 0.4); ResetBtn.Font = Enum.Font.GothamBold; ResetBtn.TextSize = 11
-Instance.new("UICorner", ResetBtn)
+ResetBtn.Size = UDim2.new(0.9, 0, 0, 22)
+ResetBtn.Position = UDim2.new(0.05, 0, 0.78, 0)
+ResetBtn.BackgroundColor3 = Color3.fromRGB(30, 15, 15)
+ResetBtn.Text = "RESET DATA (KHOA VIP)"
+ResetBtn.TextColor3 = Color3.new(1, 0.5, 0.5)
+ResetBtn.Font = Enum.Font.GothamBold
+ResetBtn.TextSize = 10
+ResetBtn.BorderSizePixel = 0
+Instance.new("UICorner", ResetBtn).CornerRadius = UDim.new(0, 4)
+
 ResetBtn.MouseButton1Click:Connect(function() 
-    Stats.Kills = 0; Stats.Earned = 0; Save() 
-    EarnedLbl.Text = "📈 EARNED: 0"; KillsLbl.Text = "⚔️ KILLS: 0"
+    Stats.Kills = 0
+    Stats.Earned = 0
+    Save() 
+    EarnedLbl.Text = "📈 EARNED: 0"
+    KillsLbl.Text = "⚔️ KILLS: 0"
 end)
 
 local StartTime = tick()
@@ -155,7 +209,10 @@ task.spawn(function()
     while task.wait(0.1) do
         local fr = 1 / RunService.RenderStepped:Wait()
         FPS = math.floor(fr)
-        local ping = math.floor(StatsService.Network.ServerStatsItem["Data Ping"]:GetValue())
+        local ping = 0
+        pcall(function()
+            ping = math.floor(StatsService.Network.ServerStatsItem["Data Ping"]:GetValue())
+        end)
         
         local current_bounty = bounty_stat and bounty_stat.Value or 0
         

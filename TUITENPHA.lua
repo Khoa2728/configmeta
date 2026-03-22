@@ -93,6 +93,19 @@ local MainGui = Instance.new("ScreenGui", SafeGui)
 MainGui.Name = "BountyTracker_Vip"
 MainGui.ResetOnSpawn = false
 
+local ToggleBtn = Instance.new("TextButton", MainGui)
+ToggleBtn.Size = UDim2.new(0, 40, 0, 40)
+ToggleBtn.Position = UDim2.new(0.02, 0, 0.5, 0)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+ToggleBtn.Text = "VIP"
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.TextSize = 12
+ToggleBtn.TextColor3 = Color3.new(1, 1, 1)
+ToggleBtn.BorderSizePixel = 0
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
+local TStroke = Instance.new("UIStroke", ToggleBtn); TStroke.Thickness = 2
+MakeDraggable(ToggleBtn)
+
 local MainFrame = Instance.new("Frame", MainGui)
 MainFrame.Size = UDim2.new(0, 320, 0, 130)
 MainFrame.Position = UDim2.new(0.5, -160, 0.1, 0)
@@ -100,6 +113,10 @@ MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 local MainStroke = Instance.new("UIStroke", MainFrame); MainStroke.Thickness = 2
 MakeDraggable(MainFrame)
+
+ToggleBtn.MouseButton1Click:Connect(function() 
+    MainFrame.Visible = not MainFrame.Visible 
+end)
 
 local function AddLabel(txt, pos, size, clr)
     local l = Instance.new("TextLabel", MainFrame)
@@ -141,7 +158,9 @@ local last_bounty = (bounty_stat and bounty_stat.Value) or 0
 local StartTime = tick()
 
 RunService.RenderStepped:Connect(function()
-    MainStroke.Color = Color3.fromHSV(tick() % 5 / 5, 0.8, 1)
+    local c = Color3.fromHSV(tick() % 5 / 5, 0.8, 1)
+    MainStroke.Color = c
+    TStroke.Color = c
 end)
 
 local LastKillUpdate = 0
@@ -164,29 +183,23 @@ task.spawn(function()
         if bounty_stat then
             local current_bounty = bounty_stat.Value
             if last_bounty == 0 and current_bounty > 0 then last_bounty = current_bounty end
-
             if current_bounty ~= last_bounty then
                 local diff = current_bounty - last_bounty
                 Stats.Earned = Stats.Earned + diff
-                
                 local prefix = (diff > 0) and "+" or ""
                 local color = (diff > 0) and 65280 or 16711680
                 local title = (diff > 0) and "BOUNTY UPDATE ✅" or "BOUNTY LOSS ❌"
-                
                 if diff > 0 then OnKillDetected() end
-                
                 send_notif(title, prefix .. tostring(diff), color)
                 last_bounty = current_bounty
                 Save()
             end
-
             BountyLbl.Text = "💎 BOUNTY: " .. FormatNumber(current_bounty)
             EarnedLbl.Text = "📈 EARNED: " .. (Stats.Earned >= 0 and "+" or "") .. FormatNumber(Stats.Earned)
             KillsLbl.Text = "⚔️ KILLS: " .. Stats.Kills
             FPSLbl.Text = "🚀 FPS: " .. math.floor(fr)
             PingLbl.Text = "📶 PING: " .. ping .. " ms"
         end
-        
         local d = tick() - StartTime
         TimeLbl.Text = string.format("🕒 TIME: %02d:%02d:%02d", math.floor(d/3600), math.floor((d%3600)/60), math.floor(d%60))
     end

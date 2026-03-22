@@ -8,6 +8,7 @@ local VirtualUser = game:GetService("VirtualUser")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 
 _G.WebhookURL = _G.WebhookURL or ""
+
 local Settings = {
     HitboxSize = 50,
     HitboxTransparency = 0.8,
@@ -29,6 +30,42 @@ pcall(function()
 end)
 
 local function Save() pcall(function() if writefile then writefile(SaveFile, HttpService:JSONEncode(Stats)) end end) end
+
+local function SendWebhook(title, gained_text, color)
+    if not _G.WebhookURL or _G.WebhookURL == "" or _G.WebhookURL == " " then return end
+    
+    local b_stat = LP.leaderstats and LP.leaderstats:FindFirstChild("Bounty/Honor")
+    local current_b = b_stat and b_stat.Value or 0
+    
+    local data = {
+        ["embeds"] = {{
+            ["title"] = "🚀 " .. title,
+            ["color"] = color,
+            ["fields"] = {
+                {["name"] = "👤 Player", ["value"] = "```" .. LP.Name .. "```", ["inline"] = true},
+                {["name"] = "💰 Bounty", ["value"] = "```" .. tostring(current_b) .. "```", ["inline"] = true},
+                {["name"] = "⚔️ Gained", ["value"] = "```" .. gained_text .. "```", ["inline"] = true},
+                {["name"] = "💀 Total Kills", ["value"] = "```" .. Stats.Kills .. "```", ["inline"] = true}
+            },
+            ["footer"] = {["text"] = "VIP Tracker • " .. os.date("%X")},
+            ["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%SZ")
+        }}
+    }
+    
+    task.spawn(function()
+        pcall(function()
+            local request = syn and syn.request or http_request or request or HttpService.PostAsync
+            if request then
+                request({
+                    Url = _G.WebhookURL,
+                    Method = "POST",
+                    Headers = {["Content-Type"] = "application/json"},
+                    Body = HttpService:JSONEncode(data)
+                })
+            end
+        end)
+    end)
+end
 
 local function ExecuteAttack()
     pcall(function()
@@ -82,23 +119,19 @@ task.spawn(function()
     while task.wait(0.6) do
         pcall(function()
             local s = Vector3.new(Settings.HitboxSize, Settings.HitboxSize, Settings.HitboxSize)
-            -- Quái
             if workspace:FindFirstChild("Enemies") then
                 for _, v in pairs(workspace.Enemies:GetChildren()) do
                     local hrp = v:FindFirstChild("HumanoidRootPart")
                     if hrp and hrp.Size ~= s then
-                        hrp.Size = s; hrp.Transparency = Settings.HitboxTransparency
-                        hrp.CanCollide = false
+                        hrp.Size = s; hrp.Transparency = Settings.HitboxTransparency; hrp.CanCollide = false
                     end
                 end
             end
-            -- Người chơi
             for _, p in pairs(P_Serv:GetPlayers()) do
                 if p ~= LP and p.Character then
                     local hrp = p.Character:FindFirstChild("HumanoidRootPart")
                     if hrp and hrp.Size ~= s then
-                        hrp.Size = s; hrp.Transparency = Settings.HitboxTransparency
-                        hrp.CanCollide = false
+                        hrp.Size = s; hrp.Transparency = Settings.HitboxTransparency; hrp.CanCollide = false
                     end
                 end
             end
@@ -119,7 +152,6 @@ RunService.RenderStepped:Connect(function()
         end
         if tick() - lastJump >= 3 then hum.Jump = true; lastJump = tick() end
     end
-    -- Rainbow UI
     local c = Color3.fromHSV(tick() % 5 / 5, 0.8, 1)
     MainStroke.Color = c; TStroke.Color = c
 end)
@@ -128,8 +160,9 @@ task.spawn(function()
     local last_bounty = 0
     local StartTime = tick()
     
+    task.delay(2, function() SendWebhook("INITIALIZED ⚔️", "+0 (Startup)", 16777215) end)
+    
     while task.wait(0.1) do
-        -- Anti-Stuck di chuyển nhẹ
         if Settings.AntiStuck then
             VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.W, false, game)
             task.wait(0.1)
@@ -147,7 +180,11 @@ task.spawn(function()
                     if dist < 100 then
                         if not hum:FindFirstChild("VipTag") then
                             local tag = Instance.new("BoolValue", hum); tag.Name = "VipTag"
-                            hum.Died:Connect(function() if dist < 100 then Stats.Kills = Stats.Kills + 1; Save() end end)
+                            hum.Died:Connect(function() 
+                                if dist < 100 then 
+                                    Stats.Kills = Stats.Kills + 1; Save() 
+                                end 
+                            end)
                         end
                         if dist <= Settings.AttackDistance then ExecuteAttack() end
                     end
@@ -159,16 +196,24 @@ task.spawn(function()
         if b_stat then
             local current_b = b_stat.Value
             if last_bounty == 0 then last_bounty = current_b end
+            
             if current_b ~= last_bounty then
                 local diff = current_b - last_bounty
                 Stats.Earned = Stats.Earned + diff
+                
+                local title = diff > 0 and "BOUNTY WIN ✅" or "BOUNTY LOST ❌"
+                local color = diff > 0 and 65280 or 16711680
+                local prefix = diff > 0 and "+" or ""
+                SendWebhook(title, prefix .. tostring(diff), color)
+                
                 last_bounty = current_b; Save()
             end
-            BountyLbl.Text = "💎 BOUNTY: "..current_b
-            EarnedLbl.Text = "📈 EARNED: "..(Stats.Earned >= 0 and "+" or "")..Stats.Earned
-            KillsLbl.Text = "⚔️ KILLS: "..Stats.Kills
-            FPSLbl.Text = "🚀 FPS: "..math.floor(1/RunService.RenderStepped:Wait())
-            PingLbl.Text = "📶 PING: "..math.floor(StatsService.Network.ServerStatsItem["Data Ping"]:GetValue()).."ms"
+            
+            BountyLbl.Text = "💎 BOUNTY: " .. current_b
+            EarnedLbl.Text = "📈 EARNED: " .. (Stats.Earned >= 0 and "+" or "") .. Stats.Earned
+            KillsLbl.Text = "⚔️ KILLS: " .. Stats.Kills
+            FPSLbl.Text = "🚀 FPS: " .. math.floor(1/RunService.RenderStepped:Wait())
+            PingLbl.Text = "📶 PING: " .. math.floor(StatsService.Network.ServerStatsItem["Data Ping"]:GetValue()) .. "ms"
             local d = tick() - StartTime; TimeLbl.Text = string.format("🕒 TIME: %02d:%02d:%02d", d/3600, (d%3600)/60, d%60)
         end
     end

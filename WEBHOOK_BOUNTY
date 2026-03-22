@@ -1,63 +1,70 @@
+if not game:IsLoaded() then
+    pcall(function() game.Loaded:Wait() end)
+end
+
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
-local player = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local StatsService = game:GetService("Stats")
+local UserInputService = game:GetService("UserInputService")
+
+local LP = Players.LocalPlayer
+
 local WEBHOOK_URL = _G.WebhookURL
+local WebhookEnabled = true
 
-if not WEBHOOK_URL or WEBHOOK_URL == "" then
-    warn("⚠️ [LỖI] Chưa nhập link Webhook vào biến _G.WebhookURL")
-    return
+local SaveFile = "Config_Vip_Stats.txt"
+local Stats = {Kills = 0, Earned = 0}
+
+pcall(function()
+    if isfile and isfile(SaveFile) then
+        local data = HttpService:JSONDecode(readfile(SaveFile))
+        Stats = data or Stats
+    end
+end)
+
+local function Save()
+    pcall(function()
+        if writefile then
+            writefile(SaveFile, HttpService:JSONEncode(Stats))
+        end
+    end)
 end
 
-local bounty_stat = player:WaitForChild("leaderstats"):WaitForChild("Bounty/Honor")
-while bounty_stat.Value <= 0 do 
-    task.wait(0.5) 
+local function FormatNumber(n)
+    local absN = math.abs(n)
+    if absN >= 1e6 then
+        return string.format("%.1fM", n/1e6)
+    elseif absN >= 1e3 then
+        return string.format("%.1fK", n/1e3)
+    end
+    return tostring(math.floor(n))
 end
 
-local last_bounty = bounty_stat.Value
+local leaderstats = LP:WaitForChild("leaderstats", 15)
+local bounty_stat = leaderstats and leaderstats:WaitForChild("Bounty/Honor", 15)
+local last_bounty = bounty_stat and bounty_stat.Value or 0
 
-function send_notif(title, display_gained, color)
-    local current_bounty = bounty_stat.Value
-    
+local function send_notif(title, gained, color)
+    if not WebhookEnabled or not WEBHOOK_URL or WEBHOOK_URL == "" then return end
+
     local data = {
         ["embeds"] = {{
             ["title"] = "📈 " .. title,
-            ["description"] = "Real-time report for: **@" .. player.Name .. "**",
+            ["description"] = "@" .. LP.Name,
             ["color"] = color,
             ["fields"] = {
-                {
-                    ["name"] = "🏷️ Username",
-                    ["value"] = "```" .. player.DisplayName .. "```",
-                    ["inline"] = true
-                },
-                {
-                    ["name"] = "💰 Bounty/Honor (Current)",
-                    ["value"] = "```" .. tostring(current_bounty) .. "```",
-                    ["inline"] = true
-                },
-                {
-                    ["name"] = "⚔️ Bounty Gained",
-                    ["value"] = "```" .. display_gained .. "```",
-                    ["inline"] = true
-                },
-                {
-                    ["name"] = "✅ Status",
-                    ["value"] = "🟢 Online",
-                    ["inline"] = false
-                }
+                {["name"] = "💰 Current", ["value"] = tostring(bounty_stat.Value), ["inline"] = true},
+                {["name"] = "⚔️ Change", ["value"] = gained, ["inline"] = true}
             },
-            ["image"] = {
-                ["url"] = "https://photo.znews.vn/Uploaded/mdf_drkydd/2016_12_18/12.gif" 
-            },
-            ["footer"] = {
-                ["text"] = "Bounty VIP Tracker • " .. os.date("%X"),
-            },
-            ["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%SZ")
+            ["footer"] = {["text"] = os.date("%X")}
         }}
     }
 
     local payload = HttpService:JSONEncode(data)
+
     pcall(function()
-        local req = (syn and syn.request or http_request or request or HttpPost)
+        local req = (syn and syn.request or http_request or request)
         if req then
             req({Url = WEBHOOK_URL, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = payload})
         else
@@ -66,19 +73,81 @@ function send_notif(title, display_gained, color)
     end)
 end
 
-send_notif("INITIALIZED ⚔️", "+0", 16777215)
+send_notif("INITIALIZED", "+0", 16777215)
+
+local SafeGui = (gethui and gethui()) or game.CoreGui
+local MainGui = Instance.new("ScreenGui", SafeGui)
+MainGui.ResetOnSpawn = false
+
+local Frame = Instance.new("Frame", MainGui)
+Frame.Size = UDim2.new(0, 320, 0, 130)
+Frame.Position = UDim2.new(0.5, -160, 0.1, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(15,15,20)
+Instance.new("UICorner", Frame)
+
+local function Label(text, pos)
+    local l = Instance.new("TextLabel", Frame)
+    l.Size = UDim2.new(0.5, -10, 0, 20)
+    l.Position = pos
+    l.BackgroundTransparency = 1
+    l.TextColor3 = Color3.new(1,1,1)
+    l.Font = Enum.Font.GothamBold
+    l.TextSize = 12
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.Text = text
+    return l
+end
+
+local BountyLbl = Label("💎 BOUNTY: --", UDim2.new(0,10,0,10))
+local EarnedLbl = Label("📈 EARNED: 0", UDim2.new(0,10,0,30))
+local KillsLbl = Label("⚔️ KILLS: 0", UDim2.new(0,10,0,50))
+
+local TimeLbl = Label("🕒 TIME: 00:00:00", UDim2.new(0.5,0,0,10))
+local FPSLbl = Label("🚀 FPS: --", UDim2.new(0.5,0,0,30))
+local PingLbl = Label("📶 PING: --", UDim2.new(0.5,0,0,50))
+
+local Toggle = Instance.new("TextButton", MainGui)
+Toggle.Size = UDim2.new(0,40,0,40)
+Toggle.Position = UDim2.new(0,20,0.5,0)
+Toggle.Text = "VIP"
+Toggle.BackgroundColor3 = Color3.fromRGB(20,20,25)
+
+Toggle.MouseButton1Click:Connect(function()
+    Frame.Visible = not Frame.Visible
+end)
+
+local StartTime = tick()
 
 task.spawn(function()
-    while task.wait(1) do 
-        local current_bounty = bounty_stat.Value
-        
-        if current_bounty ~= last_bounty then
-            local diff = current_bounty - last_bounty
-            local prefix = (diff > 0) and "+" or ""
-            
-            send_notif("BOUNTY UPDATE ✅", prefix .. tostring(diff), (diff > 0 and 65280 or 16711680))
-            
-            last_bounty = current_bounty 
+    while task.wait(0.3) do
+        local current = bounty_stat.Value
+
+        if current ~= last_bounty then
+            local diff = current - last_bounty
+            local prefix = diff > 0 and "+" or ""
+
+            Stats.Earned += diff
+            if diff > 0 then Stats.Kills += 1 end
+
+            send_notif("BOUNTY UPDATE", prefix..diff, diff > 0 and 65280 or 16711680)
+
+            last_bounty = current
+            Save()
         end
+
+        local fps = math.floor(1/RunService.RenderStepped:Wait())
+        local ping = 0
+        pcall(function()
+            ping = math.floor(StatsService.Network.ServerStatsItem["Data Ping"]:GetValue())
+        end)
+
+        BountyLbl.Text = "💎 BOUNTY: "..FormatNumber(current)
+        EarnedLbl.Text = "📈 EARNED: "..FormatNumber(Stats.Earned)
+        KillsLbl.Text = "⚔️ KILLS: "..Stats.Kills
+        FPSLbl.Text = "🚀 FPS: "..fps
+        PingLbl.Text = "📶 PING: "..ping.."ms"
+
+        local t = tick() - StartTime
+        TimeLbl.Text = string.format("🕒 TIME: %02d:%02d:%02d", t/3600%24, t/60%60, t%60)
     end
 end)

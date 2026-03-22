@@ -1,16 +1,21 @@
 local P_Serv = game:GetService("Players")
 local LP = P_Serv.LocalPlayer
-local SaveFile = "Config_Vip_" .. LP.UserId .. ".txt"
+local SaveFile = "Config_Vip_" .. LP.UserId .. ".txt" 
+
+local function FormatNumber(n)
+    local left, num, right = string.match(tostring(math.floor(math.abs(n))), '^([^%d]*%d)(%d*)(.-)$')
+    local formatted = left .. (num:reverse():gsub('(%d%d%d)', '%1.'):reverse()) .. right
+    return (n < 0 and "-" or "") .. formatted
+end
 
 if not game:IsLoaded() then
     pcall(function() game.Loaded:Wait() end)
 end
 
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 local StatsService = game:GetService("Stats")
+local UserInputService = game:GetService("UserInputService")
 
 local SafeGui = (type(gethui) == "function" and gethui()) or game:GetService("CoreGui") or (LP:FindFirstChild("PlayerGui") or LP:WaitForChild("PlayerGui", 10))
 
@@ -32,17 +37,6 @@ local function Save()
             writefile(SaveFile, HttpService:JSONEncode(Stats)) 
         end
     end) 
-end
-
-local function FormatNumber(n)
-    local absN = math.abs(n)
-    local sign = n < 0 and "-" or ""
-    if absN >= 1000000 then 
-        return string.format("%s%.1fM", sign, absN / 1000000)
-    elseif absN >= 1000 then 
-        return string.format("%s%.1fK", sign, absN / 1000)
-    end 
-    return sign .. math.floor(absN)
 end
 
 local function MakeDraggable(gui)
@@ -154,7 +148,7 @@ task.spawn(function()
 
         BountyLbl.Text = "💎 BOUNTY: " .. FormatNumber(current_bounty)
         EarnedLbl.Text = "📈 EARNED: " .. (Stats.Earned >= 0 and "+" or "") .. FormatNumber(Stats.Earned)
-        KillsLbl.Text = "⚔️ KILLS: " .. Stats.Kills
+        KillsLbl.Text = "⚔️ KILLS: " .. FormatNumber(Stats.Kills)
         
         local ping = 0
         pcall(function() ping = math.floor(StatsService.Network.ServerStatsItem["Data Ping"]:GetValue()) end)

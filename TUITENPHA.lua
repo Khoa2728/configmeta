@@ -116,6 +116,25 @@ local TimeLbl   = AddLabel("🕒 TIME: 00:00:00", UDim2.new(0.5, 5, 0, 15), UDim
 local FPSLbl    = AddLabel("🚀 FPS: --", UDim2.new(0.5, 5, 0, 40), UDim2.new(0.5, -15, 0, 20), Color3.fromRGB(0, 200, 255))
 local PingLbl   = AddLabel("📶 PING: --", UDim2.new(0.5, 5, 0, 65), UDim2.new(0.5, -15, 0, 20), Color3.fromRGB(200, 100, 255))
 
+local ResetBtn = Instance.new("TextButton", MainFrame)
+ResetBtn.Size = UDim2.new(0.9, 0, 0, 22)
+ResetBtn.Position = UDim2.new(0.05, 0, 0.78, 0)
+ResetBtn.BackgroundColor3 = Color3.fromRGB(30, 15, 15)
+ResetBtn.Text = "RESET DATA"
+ResetBtn.TextColor3 = Color3.new(1, 0.5, 0.5)
+ResetBtn.Font = Enum.Font.GothamBold
+ResetBtn.TextSize = 10
+ResetBtn.BorderSizePixel = 0
+Instance.new("UICorner", ResetBtn).CornerRadius = UDim.new(0, 4)
+
+ResetBtn.MouseButton1Click:Connect(function() 
+    Stats.Kills = 0
+    Stats.Earned = 0
+    Save() 
+    EarnedLbl.Text = "📈 EARNED: 0"
+    KillsLbl.Text = "⚔️ KILLS: 0"
+end)
+
 local leaderstats = LP:WaitForChild("leaderstats", 15)
 local bounty_stat = leaderstats and leaderstats:WaitForChild("Bounty/Honor", 15)
 local last_bounty = (bounty_stat and bounty_stat.Value) or 0
@@ -173,6 +192,7 @@ task.spawn(function()
     end
 end)
 
+-- Kill Tagging
 task.spawn(function()
     while task.wait(0.5) do
         for _, p in pairs(P_Serv:GetPlayers()) do

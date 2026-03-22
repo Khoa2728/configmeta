@@ -188,7 +188,7 @@ task.spawn(function()
                 Stats.Earned = Stats.Earned + diff
                 local prefix = (diff > 0) and "+" or ""
                 local color = (diff > 0) and 65280 or 16711680
-                local title = (diff > 0) and "BOUNTY UPDATE ✅" or "BOUNTY LOSS ❌"
+                local title = (diff > 0) and "BOUNTY WIN ✅" or "BOUNTY LOSS ❌"
                 if diff > 0 then OnKillDetected() end
                 send_notif(title, prefix .. tostring(diff), color)
                 last_bounty = current_bounty
